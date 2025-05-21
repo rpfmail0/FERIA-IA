@@ -70,9 +70,10 @@ function createTarget() {
 
 // Función para dibujar el marcador dinámico
 function drawDynamicScoreboard() {
+    console.log("Dibujando marcador dinámico..."); // Depuración
     let startX = 10;
-    const startY = 25;
-    const itemSpacing = 70; // Espacio entre cada amigo en el marcador
+    const startY = 10; // Ajustar posición Y para que no se superponga con el título
+    const itemSpacing = 80; // Espacio entre cada amigo en el marcador (aumentado un poco)
     const imageSize = 40; // Tamaño de la imagen del amigo en el marcador
 
     ctx.fillStyle = '#000';
@@ -83,17 +84,27 @@ function drawDynamicScoreboard() {
         const imageUrl = friendImageUrls[index];
         const score = friendScores[imageUrl] || 0; // Obtener puntuación o 0 si no existe
 
+        console.log(`Marcador para ${imageUrl}: x=${startX}, y=${startY}, score=${score}`); // Depuración
+
         // Dibujar la imagen del amigo en el marcador
         if (image.complete && image.naturalWidth > 0) {
              ctx.drawImage(image, startX, startY, imageSize, imageSize);
+             console.log(`Imagen de marcador dibujada para ${imageUrl}`); // Depuración
+        } else {
+             console.log(`Imagen de marcador NO dibujada para ${imageUrl} (complete: ${image.complete}, naturalWidth: ${image.naturalWidth})`); // Depuración
         }
 
 
         // Dibujar la puntuación del amigo
-        ctx.fillText(`${score}`, startX + imageSize + 5, startY + imageSize / 2 + 5); // Ajustar posición del texto
+        const scoreText = `${score}`;
+        const textX = startX + imageSize + 5;
+        const textY = startY + imageSize / 2 + 5; // Ajustar posición del texto
+        ctx.fillText(scoreText, textX, textY);
+        console.log(`Puntuación dibujada para ${imageUrl}: ${scoreText} en (${textX}, ${textY})`); // Depuración
+
 
         // Mover la posición inicial para el siguiente amigo
-        startX += imageSize + 5 + ctx.measureText(`${score}`).width + itemSpacing;
+        startX += imageSize + 5 + ctx.measureText(scoreText).width + itemSpacing;
     });
 }
 
