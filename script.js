@@ -8,6 +8,8 @@ canvas.height = 600;
 // Array para almacenar los objetivos (fotos de amigos)
 const targets = [];
 
+// Array para almacenar los objetivos (fotos de amigos)
+
 // Array para almacenar las URLs de las imágenes de amigos (rutas locales)
 const friendImageUrls = [
     'friend1.bmp', // Asumiendo que friend1.bmp está en la raíz del espacio de trabajo
@@ -15,9 +17,20 @@ const friendImageUrls = [
     // Añadir más rutas de imágenes de amigos aquí
 ];
 
-// Array para almacenar los objetos Image precargados
+// Array para almacenar las URLs de las imágenes de marco graciosas (URLs de ejemplo)
+const frameImageUrls = [
+    'https://via.placeholder.com/60x60?text=Pirata', // URL de ejemplo para marco de pirata
+    'https://via.placeholder.com/60x60?text=Dino',   // URL de ejemplo para marco de dinosaurio
+    // Añadir más URLs de imágenes de marco aquí
+];
+
+
+// Array para almacenar los objetos Image precargados de amigos y marcos
 const friendImages = [];
+const frameImages = [];
 let loadedImagesCount = 0;
+let totalImagesToLoad = friendImageUrls.length + frameImageUrls.length;
+
 
 // Objeto para almacenar la puntuación por amigo (clave: URL de la imagen, valor: puntuación)
 const friendScores = {};
@@ -25,15 +38,16 @@ const friendScores = {};
 
 // Clase o estructura para un objetivo
 class Target {
-    constructor(image, imageUrl, x, y, speedX, speedY) {
-        this.image = image; // Usar el objeto Image precargado
+    constructor(image, imageUrl, frameImage, x, y, speedX, speedY) {
+        this.image = image; // Usar el objeto Image precargado del amigo
         this.imageUrl = imageUrl; // Guardar la URL para identificar al amigo
+        this.frameImage = frameImage; // Usar el objeto Image precargado del marco
         this.x = x;
         this.y = y;
         this.speedX = speedX;
         this.speedY = speedY;
-        this.width = 50; // Tamaño inicial de la foto
-        this.height = 50; // Tamaño inicial de la foto
+        this.width = 60; // Tamaño del objetivo (ajustado para el marco)
+        this.height = 60; // Tamaño del objetivo (ajustado para el marco)
 
         // Propiedades para el cambio de dirección aleatorio
         this.changeDirectionInterval = Math.random() * 100 + 50; // Cambiar dirección cada 50-150 frames
@@ -77,8 +91,15 @@ class Target {
     }
 
     draw() {
-        // No necesitamos comprobar image.complete aquí porque usamos objetos Image precargados
-        ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
+        // Dibujar la imagen del amigo
+        ctx.drawImage(this.image, this.x + 5, this.y + 5, this.width - 10, this.height - 10); // Dibujar la imagen un poco más pequeña dentro del marco
+
+        // Dibujar la imagen del marco encima
+        if (this.frameImage && this.frameImage.complete && this.frameImage.naturalWidth > 0) {
+             ctx.drawImage(this.frameImage, this.x, this.y, this.width, this.height);
+        } else {
+             console.warn("Imagen de marco no cargada o inválida para dibujar.");
+        }
     }
 }
 
@@ -89,18 +110,24 @@ function createTarget() {
         console.error("No hay imágenes de amigos precargadas.");
         return;
     }
-    const randomIndex = Math.floor(Math.random() * friendImages.length);
-    const randomImage = friendImages[randomIndex];
-    const imageUrl = friendImageUrls[randomIndex]; // Obtener la URL correspondiente
+    const randomFriendIndex = Math.floor(Math.random() * friendImages.length);
+    const randomFriendImage = friendImages[randomFriendIndex];
+    const imageUrl = friendImageUrls[randomFriendIndex]; // Obtener la URL correspondiente
+
+    // Usar una imagen de marco aleatoria de las precargadas
+    const randomFrameImage = frameImages.length > 0 ?
+                             frameImages[Math.floor(Math.random() * frameImages.length)] :
+                             null; // No usar marco si no hay imágenes de marco cargadas
+
 
     // Posición inicial aleatoria en la parte inferior de la pantalla
-    const x = Math.random() * (canvas.width - 50);
+    const x = Math.random() * (canvas.width - 60); // Ajustar para el nuevo tamaño
     const y = canvas.height;
     // Velocidad aleatoria hacia arriba y horizontalmente
     const speedX = (Math.random() - 0.5) * 2; // Entre -1 y 1
     const speedY = -2 - Math.random() * 3; // Entre -2 y -5 (hacia arriba)
 
-    targets.push(new Target(randomImage, imageUrl, x, y, speedX, speedY));
+    targets.push(new Target(randomFriendImage, imageUrl, randomFrameImage, x, y, speedX, speedY));
 }
 
 // Función para dibujar el marcador dinámico
@@ -108,38 +135,50 @@ function drawDynamicScoreboard() {
     console.log("Dibujando marcador dinámico..."); // Depuración
     let startX = 10;
     const startY = 10; // Ajustar posición Y para que no se superponga con el título
-    const itemSpacing = 80; // Espacio entre cada amigo en el marcador (aumentado un poco)
+    const itemSpacing = 100; // Espacio entre cada amigo en el marcador (aumentado un poco)
     const imageSize = 40; // Tamaño de la imagen del amigo en el marcador
+    const frameSize = 50; // Tamaño del marco en el marcador (un poco más grande que la imagen del amigo)
+
 
     ctx.fillStyle = '#000';
     ctx.font = '16px Arial';
     ctx.textAlign = 'left';
 
-    friendImages.forEach((image, index) => {
+    friendImages.forEach((friendImage, index) => {
         const imageUrl = friendImageUrls[index];
         const score = friendScores[imageUrl] || 0; // Obtener puntuación o 0 si no existe
 
         console.log(`Marcador para ${imageUrl}: x=${startX}, y=${startY}, score=${score}`); // Depuración
 
+        // Encontrar el objeto Image del marco asociado a esta imagen de amigo (si aplica)
+        // En esta implementación simple, no hay una asociación directa entre amigo y marco en el marcador.
+        // Solo dibujaremos la imagen del amigo y la puntuación.
+        // Si quisiéramos mostrar el marco específico asignado a ese amigo, necesitaríamos otra estructura de datos.
+        // Por ahora, solo dibujaremos la imagen del amigo y la puntuación.
+
         // Dibujar la imagen del amigo en el marcador
-        if (image.complete && image.naturalWidth > 0) {
-             ctx.drawImage(image, startX, startY, imageSize, imageSize);
-             console.log(`Imagen de marcador dibujada para ${imageUrl}`); // Depuración
+        if (friendImage.complete && friendImage.naturalWidth > 0) {
+             ctx.drawImage(friendImage, startX + (frameSize - imageSize) / 2, startY + (frameSize - imageSize) / 2, imageSize, imageSize); // Centrar imagen dentro del espacio del marco
+             console.log(`Imagen de amigo dibujada en marcador para ${imageUrl}`); // Depuración
         } else {
-             console.log(`Imagen de marcador NO dibujada para ${imageUrl} (complete: ${image.complete}, naturalWidth: ${image.naturalWidth})`); // Depuración
+             console.log(`Imagen de amigo NO dibujada en marcador para ${imageUrl} (complete: ${friendImage.complete}, naturalWidth: ${friendImage.naturalWidth})`); // Depuración
         }
+
+        // Opcional: Dibujar un fondo o borde para el espacio del marcador si no usamos el marco aquí
+        // ctx.strokeStyle = '#ccc';
+        // ctx.strokeRect(startX, startY, frameSize, frameSize);
 
 
         // Dibujar la puntuación del amigo
         const scoreText = `${score}`;
-        const textX = startX + imageSize + 5;
-        const textY = startY + imageSize / 2 + 5; // Ajustar posición del texto
+        const textX = startX + frameSize + 5; // Posicionar texto después del espacio del marco
+        const textY = startY + frameSize / 2 + 5; // Ajustar posición del texto
         ctx.fillText(scoreText, textX, textY);
         console.log(`Puntuación dibujada para ${imageUrl}: ${scoreText} en (${textX}, ${textY})`); // Depuración
 
 
         // Mover la posición inicial para el siguiente amigo
-        startX += imageSize + 5 + ctx.measureText(scoreText).width + itemSpacing;
+        startX += frameSize + 5 + ctx.measureText(scoreText).width + itemSpacing;
     });
 }
 
@@ -170,26 +209,49 @@ function gameLoop() {
 }
 
 // Función para precargar imágenes
-function preloadImages(urls) {
-    urls.forEach(url => {
+function preloadImages(friendUrls, frameUrls) {
+    // Precargar imágenes de amigos
+    friendUrls.forEach(url => {
         const img = new Image();
         img.onload = () => {
             loadedImagesCount++;
-            if (loadedImagesCount === urls.length) {
+            if (loadedImagesCount === totalImagesToLoad) {
                 // Todas las imágenes cargadas, iniciar el juego
                 startGame();
             }
         };
         img.onerror = () => {
-            console.error(`Error al cargar la imagen: ${url}`);
+            console.error(`Error al cargar la imagen de amigo: ${url}`);
             loadedImagesCount++; // Contar incluso si hay error para no bloquear el inicio
-            if (loadedImagesCount === urls.length) {
+            if (loadedImagesCount === totalImagesToLoad) {
                  // Intentar iniciar el juego incluso si algunas imágenes fallaron
                 startGame();
             }
         };
         img.src = url;
         friendImages.push(img);
+    });
+
+    // Precargar imágenes de marco
+    frameUrls.forEach(url => {
+        const img = new Image();
+        img.onload = () => {
+            loadedImagesCount++;
+            if (loadedImagesCount === totalImagesToLoad) {
+                // Todas las imágenes cargadas, iniciar el juego
+                startGame();
+            }
+        };
+        img.onerror = () => {
+            console.error(`Error al cargar la imagen de marco: ${url}`);
+            loadedImagesCount++; // Contar incluso si hay error para no bloquear el inicio
+            if (loadedImagesCount === totalImagesToLoad) {
+                 // Intentar iniciar el juego incluso si algunas imágenes fallaron
+                startGame();
+            }
+        };
+        img.src = url;
+        frameImages.push(img);
     });
 }
 
@@ -205,12 +267,18 @@ function startGame() {
     // Crear objetivos iniciales (uno por cada imagen cargada)
     friendImages.forEach((image, index) => {
          // Crear objetivos iniciales en posiciones aleatorias dentro del canvas
-        const x = Math.random() * (canvas.width - 50);
-        const y = Math.random() * (canvas.height - 50); // Posición inicial dentro del canvas
+        const x = Math.random() * (canvas.width - 60); // Ajustar para el nuevo tamaño
+        const y = Math.random() * (canvas.height - 60); // Posición inicial dentro del canvas (ajustado)
         // Velocidad aleatoria (puede ser hacia cualquier dirección inicialmente)
         const speedX = (Math.random() - 0.5) * 2;
         const speedY = (Math.random() - 0.5) * 2;
-        targets.push(new Target(image, friendImageUrls[index], x, y, speedX, speedY));
+
+        // Asignar un marco aleatorio al objetivo inicial
+        const randomFrameImage = frameImages.length > 0 ?
+                                 frameImages[Math.floor(Math.random() * frameImages.length)] :
+                                 null;
+
+        targets.push(new Target(image, friendImageUrls[index], randomFrameImage, x, y, speedX, speedY));
     });
 
 
@@ -253,7 +321,7 @@ canvas.addEventListener('click', (event) => {
 });
 
 // Iniciar la precarga de imágenes
-preloadImages(friendImageUrls);
+preloadImages(friendImageUrls, frameImageUrls);
 
 // Iniciar el bucle del juego (se ejecutará y esperará a que startGame establezca los objetivos)
 gameLoop();
