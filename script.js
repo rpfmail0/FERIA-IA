@@ -8,20 +8,23 @@ canvas.height = 600;
 // Array para almacenar los objetivos (fotos de amigos)
 const targets = [];
 
-// Array para almacenar las URLs de las imágenes de amigos desde GitHub
+// Array para almacenar las URLs de las imágenes de amigos (rutas locales)
 const friendImageUrls = [
-    'https://raw.githubusercontent.com/rpfmail0/FERIA-IA/friend1.jpg', // Reemplazar con URLs reales
-    'https://raw.githubusercontent.com/rpfmail0/FERIA-IA/friend2.jpg', // Reemplazar con URLs reales
-    // Añadir más URLs de imágenes de amigos aquí
+    'friend1.bmp', // Asumiendo que friend1.bmp está en la raíz del espacio de trabajo
+    'friend2.bmp', // Asumiendo que friend2.bmp está en la raíz del espacio de trabajo
+    // Añadir más rutas de imágenes de amigos aquí
 ];
+
+// Array para almacenar los objetos Image precargados
+const friendImages = [];
+let loadedImagesCount = 0;
 
 // Array para almacenar los objetivos (fotos de amigos)
 
 // Clase o estructura para un objetivo
 class Target {
-    constructor(imageSrc, x, y, speedX, speedY) {
-        this.image = new Image();
-        this.image.src = imageSrc;
+    constructor(image, x, y, speedX, speedY) {
+        this.image = image; // Usar el objeto Image precargado
         this.x = x;
         this.y = y;
         this.speedX = speedX;
@@ -36,21 +39,19 @@ class Target {
     }
 
     draw() {
-        // Asegurarse de que la imagen se ha cargado antes de dibujar
-        if (this.image.complete) {
-            ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
-        }
+        // No necesitamos comprobar image.complete aquí porque usamos objetos Image precargados
+        ctx.drawImage(this.image, this.x, this.y, this.width, this.height);
     }
 }
 
 // Función para crear un nuevo objetivo
 function createTarget() {
-    // Usar una imagen de amigo aleatoria si hay alguna URL disponible
-    if (friendImageUrls.length === 0) {
-        console.error("No hay URLs de imágenes de amigos configuradas.");
+    // Usar una imagen de amigo aleatoria de las precargadas
+    if (friendImages.length === 0) {
+        console.error("No hay imágenes de amigos precargadas.");
         return;
     }
-    const imageUrl = friendImageUrls[Math.floor(Math.random() * friendImageUrls.length)];
+    const randomImage = friendImages[Math.floor(Math.random() * friendImages.length)];
 
     // Posición inicial aleatoria en la parte inferior de la pantalla
     const x = Math.random() * (canvas.width - 50);
@@ -59,7 +60,7 @@ function createTarget() {
     const speedX = (Math.random() - 0.5) * 2; // Entre -1 y 1
     const speedY = -2 - Math.random() * 3; // Entre -2 y -5 (hacia arriba)
 
-    targets.push(new Target(imageUrl, x, y, speedX, speedY));
+    targets.push(new Target(randomImage, x, y, speedX, speedY));
 }
 
 // Bucle principal del juego
@@ -84,13 +85,50 @@ function gameLoop() {
     requestAnimationFrame(gameLoop);
 }
 
-// Iniciar el bucle del juego
-gameLoop();
+// Función para precargar imágenes
+function preloadImages(urls) {
+    urls.forEach(url => {
+        const img = new Image();
+        img.onload = () => {
+            loadedImagesCount++;
+            if (loadedImagesCount === urls.length) {
+                // Todas las imágenes cargadas, iniciar el juego
+                startGame();
+            }
+        };
+        img.onerror = () => {
+            console.error(`Error al cargar la imagen: ${url}`);
+            loadedImagesCount++; // Contar incluso si hay error para no bloquear el inicio
+            if (loadedImagesCount === urls.length) {
+                 // Intentar iniciar el juego incluso si algunas imágenes fallaron
+                startGame();
+            }
+        };
+        img.src = url;
+        friendImages.push(img);
+    });
+}
 
-// Crear nuevos objetivos a intervalos regulares (ejemplo: cada 1 segundo)
-// Solo empezar a crear objetivos si hay URLs de imágenes configuradas
-if (friendImageUrls.length > 0) {
+// Función para iniciar el juego
+function startGame() {
+    console.log("Todas las imágenes cargadas. Iniciando juego...");
+    // Crear objetivos iniciales (uno por cada imagen cargada)
+    friendImages.forEach(image => {
+         // Crear objetivos iniciales en posiciones aleatorias dentro del canvas
+        const x = Math.random() * (canvas.width - 50);
+        const y = Math.random() * (canvas.height - 50); // Posición inicial dentro del canvas
+        // Velocidad aleatoria (puede ser hacia cualquier dirección inicialmente)
+        const speedX = (Math.random() - 0.5) * 2;
+        const speedY = (Math.random() - 0.5) * 2;
+        targets.push(new Target(image, x, y, speedX, speedY));
+    });
+
+
+    // Crear nuevos objetivos a intervalos regulares (ejemplo: cada 1 segundo)
     setInterval(createTarget, 1000);
+
+    // Iniciar el bucle principal del juego si no está ya corriendo
+    // (gameLoop ya se llama una vez al final del script)
 }
 
 
@@ -114,3 +152,9 @@ canvas.addEventListener('click', (event) => {
         }
     }
 });
+
+// Iniciar la precarga de imágenes
+preloadImages(friendImageUrls);
+
+// Iniciar el bucle del juego (se ejecutará y esperará a que startGame establezca los objetivos)
+gameLoop();
