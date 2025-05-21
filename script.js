@@ -15,11 +15,11 @@ const friendImageUrls = [
     // Añadir más rutas de imágenes de amigos aquí
 ];
 
-// Array para almacenar las URLs de las imágenes de marco graciosas (URLs de ejemplo)
+// Array para almacenar las URLs de las imágenes de marco graciosas (rutas locales de ejemplo)
 const frameImageUrls = [
-    'https://via.placeholder.com/60x60?text=Pirata', // URL de ejemplo para marco de pirata
-    'https://via.placeholder.com/60x60?text=Dino',   // URL de ejemplo para marco de dinosaurio
-    // Añadir más URLs de imágenes de marco aquí
+    'frame1.bmp', // Ruta de ejemplo para marco 1 (reemplazar con ruta real)
+    'frame2.bmp',   // Ruta de ejemplo para marco 2 (reemplazar con ruta real)
+    // Añadir más rutas de imágenes de marco aquí
 ];
 
 // Array para almacenar los objetos Image precargados de amigos y marcos
@@ -140,11 +140,8 @@ function drawDynamicScoreboard() {
 
         console.log(`Marcador para ${imageUrl}: x=${startX}, y=${startY}, score=${score}`); // Depuración
 
-        // Encontrar el objeto Image del marco asociado a esta imagen de amigo (si aplica)
         // En esta implementación simple, no hay una asociación directa entre amigo y marco en el marcador.
         // Solo dibujaremos la imagen del amigo y la puntuación.
-        // Si quisiéramos mostrar el marco específico asignado a ese amigo, necesitaríamos otra estructura de datos.
-        // Por ahora, solo dibujaremos la imagen del amigo y la puntuación.
 
         // Dibujar la imagen del amigo en el marcador
         if (friendImage.complete && friendImage.naturalWidth > 0) {
@@ -153,11 +150,6 @@ function drawDynamicScoreboard() {
         } else {
              console.log(`Imagen de amigo NO dibujada en marcador para ${imageUrl} (complete: ${friendImage.complete}, naturalWidth: ${friendImage.naturalWidth})`); // Depuración
         }
-
-        // Opcional: Dibujar un fondo o borde para el espacio del marcador si no usamos el marco aquí
-        // ctx.strokeStyle = '#ccc';
-        // ctx.strokeRect(startX, startY, frameSize, frameSize);
-
 
         // Dibujar la puntuación del amigo
         const scoreText = `${score}`;
