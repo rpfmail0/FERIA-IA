@@ -19,14 +19,15 @@ const friendImageUrls = [
 const friendImages = [];
 let loadedImagesCount = 0;
 
-// Variable para la puntuación
-let score = 0;
+// Objeto para almacenar la puntuación por amigo (clave: URL de la imagen, valor: puntuación)
+const friendScores = {};
 
 
 // Clase o estructura para un objetivo
 class Target {
-    constructor(image, x, y, speedX, speedY) {
+    constructor(image, imageUrl, x, y, speedX, speedY) {
         this.image = image; // Usar el objeto Image precargado
+        this.imageUrl = imageUrl; // Guardar la URL para identificar al amigo
         this.x = x;
         this.y = y;
         this.speedX = speedX;
@@ -53,7 +54,9 @@ function createTarget() {
         console.error("No hay imágenes de amigos precargadas.");
         return;
     }
-    const randomImage = friendImages[Math.floor(Math.random() * friendImages.length)];
+    const randomIndex = Math.floor(Math.random() * friendImages.length);
+    const randomImage = friendImages[randomIndex];
+    const imageUrl = friendImageUrls[randomIndex]; // Obtener la URL correspondiente
 
     // Posición inicial aleatoria en la parte inferior de la pantalla
     const x = Math.random() * (canvas.width - 50);
@@ -62,15 +65,36 @@ function createTarget() {
     const speedX = (Math.random() - 0.5) * 2; // Entre -1 y 1
     const speedY = -2 - Math.random() * 3; // Entre -2 y -5 (hacia arriba)
 
-    targets.push(new Target(randomImage, x, y, speedX, speedY));
+    targets.push(new Target(randomImage, imageUrl, x, y, speedX, speedY));
 }
 
-// Función para dibujar la puntuación
-function drawScore() {
+// Función para dibujar el marcador dinámico
+function drawDynamicScoreboard() {
+    let startX = 10;
+    const startY = 25;
+    const itemSpacing = 70; // Espacio entre cada amigo en el marcador
+    const imageSize = 40; // Tamaño de la imagen del amigo en el marcador
+
     ctx.fillStyle = '#000';
-    ctx.font = '20px Arial';
+    ctx.font = '16px Arial';
     ctx.textAlign = 'left';
-    ctx.fillText(`Puntuación: ${score}`, 10, 25);
+
+    friendImages.forEach((image, index) => {
+        const imageUrl = friendImageUrls[index];
+        const score = friendScores[imageUrl] || 0; // Obtener puntuación o 0 si no existe
+
+        // Dibujar la imagen del amigo en el marcador
+        if (image.complete && image.naturalWidth > 0) {
+             ctx.drawImage(image, startX, startY, imageSize, imageSize);
+        }
+
+
+        // Dibujar la puntuación del amigo
+        ctx.fillText(`${score}`, startX + imageSize + 5, startY + imageSize / 2 + 5); // Ajustar posición del texto
+
+        // Mover la posición inicial para el siguiente amigo
+        startX += imageSize + 5 + ctx.measureText(`${score}`).width + itemSpacing;
+    });
 }
 
 
@@ -92,8 +116,8 @@ function gameLoop() {
         }
     }
 
-    // Dibujar la puntuación
-    drawScore();
+    // Dibujar el marcador dinámico
+    drawDynamicScoreboard();
 
     // Solicitar el siguiente frame
     requestAnimationFrame(gameLoop);
@@ -126,15 +150,21 @@ function preloadImages(urls) {
 // Función para iniciar el juego
 function startGame() {
     console.log("Todas las imágenes cargadas. Iniciando juego...");
+
+    // Inicializar puntuaciones por amigo
+    friendImageUrls.forEach(url => {
+        friendScores[url] = 0;
+    });
+
     // Crear objetivos iniciales (uno por cada imagen cargada)
-    friendImages.forEach(image => {
+    friendImages.forEach((image, index) => {
          // Crear objetivos iniciales en posiciones aleatorias dentro del canvas
         const x = Math.random() * (canvas.width - 50);
         const y = Math.random() * (canvas.height - 50); // Posición inicial dentro del canvas
         // Velocidad aleatoria (puede ser hacia cualquier dirección inicialmente)
         const speedX = (Math.random() - 0.5) * 2;
         const speedY = (Math.random() - 0.5) * 2;
-        targets.push(new Target(image, x, y, speedX, speedY));
+        targets.push(new Target(image, friendImageUrls[index], x, y, speedX, speedY));
     });
 
 
@@ -163,9 +193,14 @@ canvas.addEventListener('click', (event) => {
             clickY > target.y && clickY < target.y + target.height) {
             // Se hizo clic en un objetivo, eliminarlo
             targets.splice(i, 1);
-            // Incrementar puntuación
-            score += 10; // Puntos por objetivo
-            console.log('¡Objetivo golpeado! Puntuación: ' + score); // Mensaje de prueba y puntuación
+            // Incrementar puntuación del amigo golpeado
+            if (friendScores[target.imageUrl] !== undefined) {
+                 friendScores[target.imageUrl]++;
+                 console.log(`¡Objetivo golpeado! Puntuación de ${target.imageUrl}: ${friendScores[target.imageUrl]}`); // Mensaje de prueba y puntuación por amigo
+            } else {
+                 console.log('¡Objetivo golpeado! URL de imagen no encontrada en friendScores.');
+            }
+
             break; // Salir del bucle después de golpear un objetivo
         }
     }
