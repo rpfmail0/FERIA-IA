@@ -19,7 +19,9 @@ const friendImageUrls = [
 const friendImages = [];
 let loadedImagesCount = 0;
 
-// Array para almacenar los objetivos (fotos de amigos)
+// Variable para la puntuación
+let score = 0;
+
 
 // Clase o estructura para un objetivo
 class Target {
@@ -63,6 +65,15 @@ function createTarget() {
     targets.push(new Target(randomImage, x, y, speedX, speedY));
 }
 
+// Función para dibujar la puntuación
+function drawScore() {
+    ctx.fillStyle = '#000';
+    ctx.font = '20px Arial';
+    ctx.textAlign = 'left';
+    ctx.fillText(`Puntuación: ${score}`, 10, 25);
+}
+
+
 // Bucle principal del juego
 function gameLoop() {
     // Limpiar el canvas
@@ -80,6 +91,9 @@ function gameLoop() {
             targets.splice(i, 1);
         }
     }
+
+    // Dibujar la puntuación
+    drawScore();
 
     // Solicitar el siguiente frame
     requestAnimationFrame(gameLoop);
@@ -139,15 +153,19 @@ canvas.addEventListener('click', (event) => {
     const clickX = event.clientX - rect.left;
     const clickY = event.clientY - rect.top;
 
+    console.log(`Click en: (${clickX}, ${clickY})`); // Depuración
+
     // Comprobar si el clic intersecta con algún objetivo
     for (let i = targets.length - 1; i >= 0; i--) {
         const target = targets[i];
+         console.log(`Objetivo ${i}: x=${target.x}, y=${target.y}, width=${target.width}, height=${target.height}`); // Depuración
         if (clickX > target.x && clickX < target.x + target.width &&
             clickY > target.y && clickY < target.y + target.height) {
             // Se hizo clic en un objetivo, eliminarlo
             targets.splice(i, 1);
-            // Aquí se añadiría la lógica de puntuación y efectos visuales/sonoros
-            console.log('¡Objetivo golpeado!'); // Mensaje de prueba
+            // Incrementar puntuación
+            score += 10; // Puntos por objetivo
+            console.log('¡Objetivo golpeado! Puntuación: ' + score); // Mensaje de prueba y puntuación
             break; // Salir del bucle después de golpear un objetivo
         }
     }
