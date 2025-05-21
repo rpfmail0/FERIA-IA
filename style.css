@@ -1,0 +1,26 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: sans-serif;
+    background-color: #f0f0f0;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 {
+    color: #333;
+}
+
+#game-container {
+    position: relative;
+    width: 800px; /* Ancho del área de juego */
+    height: 600px; /* Alto del área de juego */
+    border: 1px solid #000;
+    background-color: #fff;
+    overflow: hidden; /* Oculta cualquier cosa que salga del contenedor */
+}
+
+canvas {
+    display: block; /* Elimina el espacio extra debajo del canvas */
+}
