@@ -6,8 +6,7 @@ canvas.width = 800;
 canvas.height = 600;
 
 // Array para almacenar los objetivos (fotos de amigos)
-
-// Array para almacenar los objetivos (fotos de amigos)
+const targets = [];
 
 // Array para almacenar las URLs de las imágenes de amigos (rutas locales)
 const friendImageUrls = [
@@ -23,17 +22,17 @@ const frameImageUrls = [
     // Añadir más URLs de imágenes de marco aquí
 ];
 
-
 // Array para almacenar los objetos Image precargados de amigos y marcos
 const friendImages = [];
 const frameImages = [];
 let loadedImagesCount = 0;
 let totalImagesToLoad = friendImageUrls.length + frameImageUrls.length;
 
+// Máximo número de objetivos visibles simultáneamente
+const MAX_TARGETS = 12;
 
 // Objeto para almacenar la puntuación por amigo (clave: URL de la imagen, valor: puntuación)
 const friendScores = {};
-
 
 // Clase o estructura para un objetivo
 class Target {
@@ -47,45 +46,24 @@ class Target {
         this.speedY = speedY;
         this.width = 60; // Tamaño del objetivo (ajustado para el marco)
         this.height = 60; // Tamaño del objetivo (ajustado para el marco)
-
-        // Propiedades para el cambio de dirección aleatorio
-        this.changeDirectionInterval = Math.random() * 100 + 50; // Cambiar dirección cada 50-150 frames
-        this.timeSinceLastDirectionChange = 0;
     }
 
     update() {
         this.x += this.speedX;
         this.y += this.speedY;
 
-        // Incrementar temporizador de cambio de dirección
-        this.timeSinceLastDirectionChange++;
-
-        // Cambiar de dirección si ha pasado el intervalo o si choca con los bordes
-        if (this.timeSinceLastDirectionChange >= this.changeDirectionInterval ||
-            this.x <= 0 || this.x + this.width >= canvas.width ||
-            this.y <= 0 || this.y + this.height >= canvas.height) {
-
-            // Rebotar en los bordes
-            if (this.x <= 0 || this.x + this.width >= canvas.width) {
-                this.speedX *= -1;
-            }
-            if (this.y <= 0 || this.y + this.height >= canvas.height) {
-                this.speedY *= -1;
-            }
-
-            // Cambiar dirección aleatoriamente (con un poco de impulso en la dirección rebotada)
-            this.speedX = (Math.random() - 0.5) * 4 + (this.speedX > 0 ? 1 : -1) * Math.random() * 2;
-            this.speedY = (Math.random() - 0.5) * 4 + (this.speedY > 0 ? 1 : -1) * Math.random() * 2;
-
-            // Asegurar una velocidad mínima para evitar que se queden quietos
-            const minSpeed = 1;
-            if (Math.abs(this.speedX) < minSpeed) this.speedX = Math.sign(this.speedX) * minSpeed || minSpeed;
-            if (Math.abs(this.speedY) < minSpeed) this.speedY = Math.sign(this.speedY) * minSpeed || minSpeed;
-
-
-            // Resetear temporizador
-            this.timeSinceLastDirectionChange = 0;
-            this.changeDirectionInterval = Math.random() * 100 + 50; // Nuevo intervalo aleatorio
+        // Rebotar en los bordes
+        if (this.x <= 0 || this.x + this.width >= canvas.width) {
+            this.speedX *= -1;
+            // Ajustar posición para evitar que se peguen al borde
+            if (this.x <= 0) this.x = 0;
+            if (this.x + this.width >= canvas.width) this.x = canvas.width - this.width;
+        }
+        if (this.y <= 0 || this.y + this.height >= canvas.height) {
+            this.speedY *= -1;
+             // Ajustar posición para evitar que se peguen al borde
+            if (this.y <= 0) this.y = 0;
+            if (this.y + this.height >= canvas.height) this.y = canvas.height - this.height;
         }
     }
 
@@ -104,6 +82,11 @@ class Target {
 
 // Función para crear un nuevo objetivo
 function createTarget() {
+    // Solo crear un objetivo si el número actual es menor que el máximo
+    if (targets.length >= MAX_TARGETS) {
+        return;
+    }
+
     // Usar una imagen de amigo aleatoria de las precargadas
     if (friendImages.length === 0) {
         console.error("No hay imágenes de amigos precargadas.");
@@ -119,12 +102,20 @@ function createTarget() {
                              null; // No usar marco si no hay imágenes de marco cargadas
 
 
-    // Posición inicial aleatoria en la parte inferior de la pantalla
+    // Posición inicial aleatoria dentro del canvas
     const x = Math.random() * (canvas.width - 60); // Ajustar para el nuevo tamaño
-    const y = canvas.height;
-    // Velocidad aleatoria hacia arriba y horizontalmente
-    const speedX = (Math.random() - 0.5) * 2; // Entre -1 y 1
-    const speedY = -2 - Math.random() * 3; // Entre -2 y -5 (hacia arriba)
+    const y = Math.random() * (canvas.height - 60); // Posición inicial dentro del canvas (ajustado)
+
+    // Velocidad inicial aleatoria (puede ser positiva o negativa)
+    const minSpeed = 1;
+    const maxSpeed = 3;
+    let speedX = (Math.random() - 0.5) * 2 * maxSpeed;
+    let speedY = (Math.random() - 0.5) * 2 * maxSpeed;
+
+    // Asegurar una velocidad mínima para evitar que se queden quietos
+    if (Math.abs(speedX) < minSpeed) speedX = Math.sign(speedX) * minSpeed || minSpeed;
+    if (Math.abs(speedY) < minSpeed) speedY = Math.sign(speedY) * minSpeed || minSpeed;
+
 
     targets.push(new Target(randomFriendImage, imageUrl, randomFrameImage, x, y, speedX, speedY));
 }
@@ -194,11 +185,12 @@ function gameLoop() {
     }
 
     // Eliminar objetivos que salieron de la pantalla (para evitar que el array crezca indefinidamente)
-    for (let i = targets.length - 1; i >= 0; i--) {
-        if (targets[i].y + targets[i].height < 0 || targets[i].x + targets[i].width < 0 || targets[i].x > canvas.width) {
-            targets.splice(i, 1);
-        }
-    }
+    // Esta lógica ya no es necesaria con el límite de MAX_TARGETS y la creación al golpear/salir
+    // for (let i = targets.length - 1; i >= 0; i--) {
+    //     if (targets[i].y + targets[i].height < 0 || targets[i].x + targets[i].width < 0 || targets[i].x > canvas.width) {
+    //         targets.splice(i, 1);
+    //     }
+    // }
 
     // Dibujar el marcador dinámico
     drawDynamicScoreboard();
@@ -263,26 +255,34 @@ function startGame() {
         friendScores[url] = 0;
     });
 
-    // Crear objetivos iniciales (uno por cada imagen cargada)
-    friendImages.forEach((image, index) => {
+    // Crear objetivos iniciales hasta el máximo permitido
+    for (let i = 0; i < MAX_TARGETS && i < friendImages.length; i++) {
          // Crear objetivos iniciales en posiciones aleatorias dentro del canvas
         const x = Math.random() * (canvas.width - 60); // Ajustar para el nuevo tamaño
         const y = Math.random() * (canvas.height - 60); // Posición inicial dentro del canvas (ajustado)
-        // Velocidad aleatoria (puede ser hacia cualquier dirección inicialmente)
-        const speedX = (Math.random() - 0.5) * 2;
-        const speedY = (Math.random() - 0.5) * 2;
+
+        // Velocidad inicial aleatoria (puede ser positiva o negativa)
+        const minSpeed = 1;
+        const maxSpeed = 3;
+        let speedX = (Math.random() - 0.5) * 2 * maxSpeed;
+        let speedY = (Math.random() - 0.5) * 2 * maxSpeed;
+
+        // Asegurar una velocidad mínima para evitar que se queden quietos
+        if (Math.abs(speedX) < minSpeed) speedX = Math.sign(speedX) * minSpeed || minSpeed;
+        if (Math.abs(speedY) < minSpeed) speedY = Math.sign(speedY) * minSpeed || minSpeed;
+
 
         // Asignar un marco aleatorio al objetivo inicial
         const randomFrameImage = frameImages.length > 0 ?
                                  frameImages[Math.floor(Math.random() * frameImages.length)] :
                                  null;
 
-        targets.push(new Target(image, friendImageUrls[index], randomFrameImage, x, y, speedX, speedY));
-    });
+        targets.push(new Target(friendImages[i], friendImageUrls[i], randomFrameImage, x, y, speedX, speedY));
+    }
 
 
-    // Crear nuevos objetivos a intervalos regulares (ejemplo: cada 1 segundo)
-    setInterval(createTarget, 1000);
+    // Ya no necesitamos setInterval para crear objetivos continuamente
+    // Los nuevos objetivos se crearán al golpear uno si el total es menor que MAX_TARGETS
 
     // Iniciar el bucle principal del juego si no está ya corriendo
     // (gameLoop ya se llama una vez al final del script)
@@ -312,6 +312,11 @@ canvas.addEventListener('click', (event) => {
                  console.log(`¡Objetivo golpeado! Puntuación de ${target.imageUrl}: ${friendScores[target.imageUrl]}`); // Mensaje de prueba y puntuación por amigo
             } else {
                  console.log('¡Objetivo golpeado! URL de imagen no encontrada en friendScores.');
+            }
+
+            // Crear un nuevo objetivo si el número actual es menor que el máximo
+            if (targets.length < MAX_TARGETS) {
+                createTarget();
             }
 
             break; // Salir del bucle después de golpear un objetivo
