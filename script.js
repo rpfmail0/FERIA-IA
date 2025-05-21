@@ -34,11 +34,46 @@ class Target {
         this.speedY = speedY;
         this.width = 50; // Tamaño inicial de la foto
         this.height = 50; // Tamaño inicial de la foto
+
+        // Propiedades para el cambio de dirección aleatorio
+        this.changeDirectionInterval = Math.random() * 100 + 50; // Cambiar dirección cada 50-150 frames
+        this.timeSinceLastDirectionChange = 0;
     }
 
     update() {
         this.x += this.speedX;
         this.y += this.speedY;
+
+        // Incrementar temporizador de cambio de dirección
+        this.timeSinceLastDirectionChange++;
+
+        // Cambiar de dirección si ha pasado el intervalo o si choca con los bordes
+        if (this.timeSinceLastDirectionChange >= this.changeDirectionInterval ||
+            this.x <= 0 || this.x + this.width >= canvas.width ||
+            this.y <= 0 || this.y + this.height >= canvas.height) {
+
+            // Rebotar en los bordes
+            if (this.x <= 0 || this.x + this.width >= canvas.width) {
+                this.speedX *= -1;
+            }
+            if (this.y <= 0 || this.y + this.height >= canvas.height) {
+                this.speedY *= -1;
+            }
+
+            // Cambiar dirección aleatoriamente (con un poco de impulso en la dirección rebotada)
+            this.speedX = (Math.random() - 0.5) * 4 + (this.speedX > 0 ? 1 : -1) * Math.random() * 2;
+            this.speedY = (Math.random() - 0.5) * 4 + (this.speedY > 0 ? 1 : -1) * Math.random() * 2;
+
+            // Asegurar una velocidad mínima para evitar que se queden quietos
+            const minSpeed = 1;
+            if (Math.abs(this.speedX) < minSpeed) this.speedX = Math.sign(this.speedX) * minSpeed || minSpeed;
+            if (Math.abs(this.speedY) < minSpeed) this.speedY = Math.sign(this.speedY) * minSpeed || minSpeed;
+
+
+            // Resetear temporizador
+            this.timeSinceLastDirectionChange = 0;
+            this.changeDirectionInterval = Math.random() * 100 + 50; // Nuevo intervalo aleatorio
+        }
     }
 
     draw() {
