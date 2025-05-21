@@ -1,9 +1,16 @@
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 
+// Cambiar el puntero del ratón a una imagen de pistola
+canvas.style.cursor = 'url("pistol_cursor.jpg"), auto'; // Asumiendo que tienes una imagen de cursor llamada pistol_cursor.png en la raíz
+
 // Establecer dimensiones del canvas (debe coincidir con el CSS)
 canvas.width = 800;
 canvas.height = 600;
+
+// Variable para la imagen de fondo
+const backgroundImage = new Image();
+backgroundImage.src = 'background.jpg'; // Asumiendo que tienes una imagen llamada background.png en la raíz
 
 // Array para almacenar los objetivos (fotos de amigos)
 const targets = [];
@@ -26,7 +33,7 @@ const frameImageUrls = [
 const friendImages = [];
 const frameImages = [];
 let loadedImagesCount = 0;
-let totalImagesToLoad = friendImageUrls.length + frameImageUrls.length;
+let totalImagesToLoad = friendImageUrls.length + frameImageUrls.length + 1; // +1 para la imagen de fondo
 
 // Máximo número de objetivos visibles simultáneamente
 const MAX_TARGETS = 12;
@@ -167,8 +174,14 @@ function drawDynamicScoreboard() {
 
 // Bucle principal del juego
 function gameLoop() {
-    // Limpiar el canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Dibujar la imagen de fondo
+    if (backgroundImage.complete) {
+        ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
+    } else {
+        // Si la imagen de fondo no está cargada, limpiar el canvas con un color de fondo
+        ctx.fillStyle = '#87CEEB'; // Un color de cielo claro como fondo por defecto
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
 
     // Actualizar y dibujar objetivos
     for (let i = 0; i < targets.length; i++) {
@@ -221,7 +234,7 @@ function preloadImages(friendUrls, frameUrls) {
         img.onload = () => {
             loadedImagesCount++;
             if (loadedImagesCount === totalImagesToLoad) {
-                // Todas las imágenes cargadas, iniciar el juego
+                // Todas las imágenes (incluida la de fondo) cargadas, iniciar el juego
                 startGame();
             }
         };
@@ -236,7 +249,109 @@ function preloadImages(friendUrls, frameUrls) {
         img.src = url;
         frameImages.push(img);
     });
+
+    // Manejar la carga de la imagen de fondo
+    backgroundImage.onload = () => {
+        loadedImagesCount++;
+        if (loadedImagesCount === totalImagesToLoad) {
+            // Todas las imágenes cargadas, iniciar el juego
+            startGame();
+        }
+    };
+    backgroundImage.onerror = () => {
+        console.error(`Error al cargar la imagen de fondo: ${backgroundImage.src}`);
+        loadedImagesCount++; // Contar incluso si hay error para no bloquear el inicio
+        if (loadedImagesCount === totalImagesToLoad) {
+             // Intentar iniciar el juego incluso si la imagen de fondo falló
+            startGame();
+        }
+    };
+    // La fuente de la imagen de fondo ya está establecida al declarar la variable
 }
+
+// Función para iniciar el juego
+function startGame() {
+    console.log("Todas las imágenes cargadas. Iniciando juego...");
+
+    // Inicializar puntuaciones por amigo
+    friendImageUrls.forEach(url => {
+        friendScores[url] = 0;
+    });
+
+    // Crear objetivos iniciales hasta el máximo permitido
+    for (let i = 0; i < MAX_TARGETS && i < friendImages.length; i++) {
+         // Crear objetivos iniciales en posiciones aleatorias dentro del canvas
+        const x = Math.random() * (canvas.width - 60); // Ajustar para el nuevo tamaño
+        const y = Math.random() * (canvas.height - 60); // Posición inicial dentro del canvas (ajustado)
+
+        // Velocidad inicial aleatoria (puede ser positiva o negativa)
+        const minSpeed = 1;
+        const maxSpeed = 3;
+        let speedX = (Math.random() - 0.5) * 2 * maxSpeed;
+        let speedY = (Math.random() - 0.5) * 2 * maxSpeed;
+
+        // Asegurar una velocidad mínima para evitar que se queden quietos
+        if (Math.abs(speedX) < minSpeed) speedX = Math.sign(speedX) * minSpeed || minSpeed;
+        if (Math.abs(speedY) < minSpeed) speedY = Math.sign(speedY) * minSpeed || minSpeed;
+
+
+        // Asignar un marco aleatorio al objetivo inicial
+        const randomFrameImage = frameImages.length > 0 ?
+                                 frameImages[Math.floor(Math.random() * frameImages.length)] :
+                                 null;
+
+        targets.push(new Target(friendImages[i], friendImageUrls[i], randomFrameImage, x, y, speedX, speedY));
+    }
+
+
+    // Ya no necesitamos setInterval para crear objetivos continuamente
+    // Los nuevos objetivos se crearán al golpear uno si el total es menor que MAX_TARGETS
+
+    // Iniciar el bucle principal del juego si no está ya corriendo
+    // (gameLoop ya se llama una vez al final del script)
+}
+
+
+// Añadir event listener para el clic del ratón
+canvas.addEventListener('click', (event) => {
+    // Obtener las coordenadas del clic relativas al canvas
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const clickY = event.clientY - rect.top;
+
+    console.log(`Click en: (${clickX}, ${clickY})`); // Depuración
+
+    // Comprobar si el clic intersecta con algún objetivo
+    for (let i = targets.length - 1; i >= 0; i--) {
+        const target = targets[i];
+         console.log(`Objetivo ${i}: x=${target.x}, y=${target.y}, width=${target.width}, height=${target.height}`); // Depuración
+        if (clickX > target.x && clickX < target.x + target.width &&
+            clickY > target.y && clickY < target.y + target.height) {
+            // Se hizo clic en un objetivo, eliminarlo
+            targets.splice(i, 1);
+            // Incrementar puntuación del amigo golpeado
+            if (friendScores[target.imageUrl] !== undefined) {
+                 friendScores[target.imageUrl]++;
+                 console.log(`¡Objetivo golpeado! Puntuación de ${target.imageUrl}: ${friendScores[target.imageUrl]}`); // Mensaje de prueba y puntuación por amigo
+            } else {
+                 console.log('¡Objetivo golpeado! URL de imagen no encontrada en friendScores.');
+            }
+
+            // Crear un nuevo objetivo si el número actual es menor que el máximo
+            if (targets.length < MAX_TARGETS) {
+                createTarget();
+            }
+
+            break; // Salir del bucle después de golpear un objetivo
+        }
+    }
+});
+
+// Iniciar la precarga de imágenes
+preloadImages(friendImageUrls, frameImageUrls);
+
+// Iniciar el bucle del juego (se ejecutará y esperará a que startGame establezca los objetivos)
+gameLoop();
 
 // Función para iniciar el juego
 function startGame() {
