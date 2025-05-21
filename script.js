@@ -8,8 +8,14 @@ canvas.height = 600;
 // Array para almacenar los objetivos (fotos de amigos)
 const targets = [];
 
-// Array para almacenar las URLs de las imágenes de amigos
-const friendImageUrls = [];
+// Array para almacenar las URLs de las imágenes de amigos desde GitHub
+const friendImageUrls = [
+    'https://raw.githubusercontent.com/rpfmail0/FERIA-IA/friend1.jpg', // Reemplazar con URLs reales
+    'https://raw.githubusercontent.com/rpfmail0/FERIA-IA/friend2.jpg', // Reemplazar con URLs reales
+    // Añadir más URLs de imágenes de amigos aquí
+];
+
+// Array para almacenar los objetivos (fotos de amigos)
 
 // Clase o estructura para un objetivo
 class Target {
@@ -39,10 +45,12 @@ class Target {
 
 // Función para crear un nuevo objetivo
 function createTarget() {
-    // Usar una imagen de amigo si hay alguna cargada, de lo contrario usar placeholder
-    const imageUrl = friendImageUrls.length > 0 ?
-                     friendImageUrls[Math.floor(Math.random() * friendImageUrls.length)] :
-                     'https://via.placeholder.com/50'; // URL de una imagen de placeholder
+    // Usar una imagen de amigo aleatoria si hay alguna URL disponible
+    if (friendImageUrls.length === 0) {
+        console.error("No hay URLs de imágenes de amigos configuradas.");
+        return;
+    }
+    const imageUrl = friendImageUrls[Math.floor(Math.random() * friendImageUrls.length)];
 
     // Posición inicial aleatoria en la parte inferior de la pantalla
     const x = Math.random() * (canvas.width - 50);
@@ -80,7 +88,11 @@ function gameLoop() {
 gameLoop();
 
 // Crear nuevos objetivos a intervalos regulares (ejemplo: cada 1 segundo)
-setInterval(createTarget, 1000);
+// Solo empezar a crear objetivos si hay URLs de imágenes configuradas
+if (friendImageUrls.length > 0) {
+    setInterval(createTarget, 1000);
+}
+
 
 // Añadir event listener para el clic del ratón
 canvas.addEventListener('click', (event) => {
@@ -99,22 +111,6 @@ canvas.addEventListener('click', (event) => {
             // Aquí se añadiría la lógica de puntuación y efectos visuales/sonoros
             console.log('¡Objetivo golpeado!'); // Mensaje de prueba
             break; // Salir del bucle después de golpear un objetivo
-        }
-    }
-});
-
-// Manejar la carga de imágenes de amigos
-const friendPhotosInput = document.getElementById('friendPhotos');
-friendPhotosInput.addEventListener('change', (event) => {
-    const files = event.target.files;
-    for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (file.type.startsWith('image/')) {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                friendImageUrls.push(e.target.result);
-            };
-            reader.readAsDataURL(file);
         }
     }
 });
