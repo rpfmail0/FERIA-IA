@@ -6,7 +6,6 @@ canvas.width = 800;
 canvas.height = 600;
 
 // Array para almacenar los objetivos (fotos de amigos)
-const targets = [];
 
 // Array para almacenar los objetivos (fotos de amigos)
 
